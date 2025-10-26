@@ -1,0 +1,32 @@
+{
+  "name": "lockform",
+  "version": "1.0.0",
+  "description": "Official SDK for processing Lockform webhook submissions with end-to-end encryption",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "lockform",
+    "encryption",
+    "webhook",
+    "e2e",
+    "forms",
+    "rsa",
+    "aes"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
