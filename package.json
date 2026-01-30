@@ -1,6 +1,6 @@
 {
   "name": "lockform",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "description": "Official SDK for processing Lockform webhook submissions with end-to-end encryption using X25519 + AES-256-GCM",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
