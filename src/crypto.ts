@@ -34,6 +34,11 @@ export function importPrivateKeyFromBase64(base64: string): Uint8Array {
   return Buffer.from(base64, 'base64')
 }
 
+export function derivePrivateKey(mnemonic: string): string {
+  const privateKeyBytes = importPrivateKeyFromMnemonic(mnemonic)
+  return Buffer.from(privateKeyBytes).toString('base64')
+}
+
 function deriveSharedSecret(
   privateKey: Uint8Array,
   publicKey: Uint8Array

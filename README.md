@@ -94,6 +94,31 @@ app.post('/webhook', async (req, res) => {
 
 ## API Reference
 
+### `derivePrivateKey(mnemonic)`
+
+Derives a base64-encoded X25519 private key from a 15-word BIP39 recovery phrase. Useful for generating keys to use in edge functions.
+
+**Parameters:**
+- `mnemonic` (string): Your 15-word BIP39 recovery phrase
+
+**Returns:** `string` - Base64-encoded X25519 private key
+
+**Example:**
+
+```typescript
+import { derivePrivateKey } from 'lockform'
+
+const mnemonic = 'your fifteen word recovery phrase goes here exactly fifteen words'
+const privateKeyBase64 = derivePrivateKey(mnemonic)
+
+console.log(privateKeyBase64)
+// Output: "a1b2c3d4e5f6..." (base64 string)
+
+// Store this in your edge function environment variable
+```
+
+**Use case:** Run this once locally to derive your private key, then store the base64 output as an environment variable for edge functions (to avoid PBKDF2 timeout).
+
 ### `decryptWebhookData(options)`
 
 Decrypts an encrypted webhook payload from Lockform using X25519 + AES-256-GCM.
@@ -247,6 +272,8 @@ app.listen(3000, () => {
 
 ### Deno Edge Function
 
+**Important:** Edge functions have strict CPU time limits. Use a base64-encoded private key instead of the 15-word recovery phrase to avoid CPU timeout errors. See the performance note below.
+
 ```typescript
 import { decryptWebhookData, verifyWebhookSignature, type WebhookPayload } from 'lockform'
 
@@ -339,6 +366,52 @@ The webhook payload structure has changed:
 - `wrapped_key` → `ephemeral_public_key`
 - Added: `salt`, `encryption_timestamp`
 - `algorithm` changed from `RSA-OAEP-4096+AES-256-GCM` to `X25519+AES-256-GCM`
+
+## Performance Considerations
+
+### Edge Functions (Deno, Cloudflare Workers, etc.)
+
+Edge functions have strict CPU time limits (typically 50-100ms). The PBKDF2 key derivation with 600,000 iterations can take several seconds and will cause timeout errors.
+
+**Solution:** Use a base64-encoded private key instead of the recovery phrase.
+
+**Option 1: Use the CLI tool (easiest)**
+
+```bash
+npx lockform-derive-key
+# Or if installed: npm run derive-key
+```
+
+This will prompt you for your recovery phrase and output the base64 private key.
+
+**Option 2: Use the API programmatically**
+
+```javascript
+import { derivePrivateKey } from 'lockform'
+
+const mnemonic = 'your fifteen word recovery phrase here exactly fifteen words'
+const privateKeyBase64 = derivePrivateKey(mnemonic)
+console.log(privateKeyBase64) // Store this in your edge function environment
+```
+
+Then use the base64 key in your edge function:
+
+```typescript
+const recoveryPhrase = Deno.env.get('LOCKFORM_RECOVERY_PHRASE') // Now contains base64 key
+
+const result = await decryptWebhookData({
+  payload,
+  passphrase: recoveryPhrase, // Automatically detects base64 format (no PBKDF2)
+})
+```
+
+The library automatically detects the format:
+- Contains spaces → 15-word mnemonic (slow, runs PBKDF2)
+- No spaces → Base64 private key (fast, skips PBKDF2)
+
+### Node.js / Long-running servers
+
+You can use either format. The 15-word recovery phrase works fine in environments without strict CPU time limits.
 
 ## Requirements
 
