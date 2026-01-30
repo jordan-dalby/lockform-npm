@@ -14,21 +14,21 @@ npm install lockform
 - **Signature verification**: Verify webhook authenticity using HMAC-SHA256 signatures
 - **Field mapping**: Automatically map field IDs to human-readable CSV names
 - **X25519 encryption**: Modern, fast elliptic curve cryptography
-- **BIP39 support**: Works with 15-word recovery phrases or base64 private keys
+- **BIP39 support**: Works with 15-word passphrases or base64 private keys
 - **TypeScript support**: Full type definitions included
 
 ## Quick Start
 
 ### Decrypting Webhook Data
 
-You can decrypt webhooks using either your 15-word recovery phrase or a base64-encoded private key:
+You can decrypt webhooks using either your 15-word passphrase or a base64-encoded private key:
 
-**Using recovery phrase:**
+**Using passphrase:**
 
 ```typescript
 import { decryptWebhookData } from 'lockform'
 
-const mnemonic = 'your fifteen word recovery phrase goes here and must be exactly fifteen words'
+const mnemonic = 'your fifteen word passphrase goes here and must be exactly fifteen words'
 
 app.post('/webhook', async (req, res) => {
   const payload = req.body
@@ -96,10 +96,10 @@ app.post('/webhook', async (req, res) => {
 
 ### `derivePrivateKey(mnemonic)`
 
-Derives a base64-encoded X25519 private key from a 15-word BIP39 recovery phrase. Useful for generating keys to use in edge functions.
+Derives a base64-encoded X25519 private key from a 15-word BIP39 passphrase. Useful for generating keys to use in edge functions.
 
 **Parameters:**
-- `mnemonic` (string): Your 15-word BIP39 recovery phrase
+- `mnemonic` (string): Your 15-word BIP39 passphrase
 
 **Returns:** `string` - Base64-encoded X25519 private key
 
@@ -108,7 +108,7 @@ Derives a base64-encoded X25519 private key from a 15-word BIP39 recovery phrase
 ```typescript
 import { derivePrivateKey } from 'lockform'
 
-const mnemonic = 'your fifteen word recovery phrase goes here exactly fifteen words'
+const mnemonic = 'your fifteen word passphrase goes here exactly fifteen words'
 const privateKeyBase64 = derivePrivateKey(mnemonic)
 
 console.log(privateKeyBase64)
@@ -125,7 +125,7 @@ Decrypts an encrypted webhook payload from Lockform using X25519 + AES-256-GCM.
 
 **Parameters:**
 - `options.payload` (WebhookPayload): The webhook payload received from Lockform
-- `options.passphrase` (string): Your 15-word BIP39 recovery phrase (or optionally, base64-encoded X25519 private key)
+- `options.passphrase` (string): Your 15-word BIP39 passphrase (or optionally, base64-encoded X25519 private key)
 
 **Returns:** `Promise<DecryptedSubmission>`
 
@@ -272,7 +272,7 @@ app.listen(3000, () => {
 
 ### Deno Edge Function
 
-**Important:** Edge functions have strict CPU time limits. Use a base64-encoded private key instead of the 15-word recovery phrase to avoid CPU timeout errors. See the performance note below.
+**Important:** Edge functions have strict CPU time limits. Use a base64-encoded private key instead of the 15-word passphrase to avoid CPU timeout errors. See the performance note below.
 
 ```typescript
 import { decryptWebhookData, verifyWebhookSignature, type WebhookPayload } from 'lockform'
@@ -290,7 +290,7 @@ Deno.serve(async (req) => {
 
   if (!recoveryPhrase) {
     return new Response(
-      JSON.stringify({ error: 'Recovery phrase not configured' }),
+      JSON.stringify({ error: 'Passphrase not configured' }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     )
   }
@@ -347,8 +347,8 @@ Lockform uses modern, audited cryptography for maximum security:
 ## Security Best Practices
 
 1. **Always verify signatures**: Use `verifyWebhookSignature` to ensure webhooks are genuinely from Lockform
-2. **Protect your recovery phrase**: Store your 15-word recovery phrase in environment variables, never commit it to version control
-3. **Never share your recovery phrase**: Anyone with your 15-word recovery phrase can decrypt all submissions
+2. **Protect your passphrase**: Store your 15-word passphrase in environment variables, never commit it to version control
+3. **Never share your passphrase**: Anyone with your 15-word passphrase can decrypt all submissions
 4. **Use HTTPS**: Always use HTTPS endpoints for webhooks in production
 5. **Validate data**: Always validate the decrypted data before processing it
 6. **Implement idempotency**: Use the `submission_id` to prevent duplicate processing
@@ -359,8 +359,8 @@ Lockform uses modern, audited cryptography for maximum security:
 If you're migrating from the RSA-based v1.x version:
 
 1. **Update your package**: `npm install lockform@latest`
-2. **Update your credentials**: Use your 15-word recovery phrase instead of PEM-formatted RSA keys
-3. **Update your code**: Pass your recovery phrase as the `passphrase` parameter (renamed from `privateKey`)
+2. **Update your credentials**: Use your 15-word passphrase instead of PEM-formatted RSA keys
+3. **Update your code**: Pass your passphrase as the `passphrase` parameter (renamed from `privateKey`)
 
 The webhook payload structure has changed:
 - `wrapped_key` → `ephemeral_public_key`
@@ -373,7 +373,7 @@ The webhook payload structure has changed:
 
 Edge functions have strict CPU time limits (typically 50-100ms). The PBKDF2 key derivation with 600,000 iterations can take several seconds and will cause timeout errors.
 
-**Solution:** Use a base64-encoded private key instead of the recovery phrase.
+**Solution:** Use a base64-encoded private key instead of the passphrase.
 
 **Option 1: Use the CLI tool (easiest)**
 
@@ -382,14 +382,14 @@ npx lockform-derive-key
 # Or if installed: npm run derive-key
 ```
 
-This will prompt you for your recovery phrase and output the base64 private key.
+This will prompt you for your passphrase and output the base64 private key.
 
 **Option 2: Use the API programmatically**
 
 ```javascript
 import { derivePrivateKey } from 'lockform'
 
-const mnemonic = 'your fifteen word recovery phrase here exactly fifteen words'
+const mnemonic = 'your fifteen word passphrase here exactly fifteen words'
 const privateKeyBase64 = derivePrivateKey(mnemonic)
 console.log(privateKeyBase64) // Store this in your edge function environment
 ```
@@ -411,7 +411,7 @@ The library automatically detects the format:
 
 ### Node.js / Long-running servers
 
-You can use either format. The 15-word recovery phrase works fine in environments without strict CPU time limits.
+You can use either format. The 15-word passphrase works fine in environments without strict CPU time limits.
 
 ## Requirements
 
