@@ -1,17 +1,27 @@
-import { importPrivateKey, decryptSubmission } from './crypto'
+import { importPrivateKeyFromMnemonic, importPrivateKeyFromBase64, decryptSubmission } from './crypto'
 import { DecryptedSubmission, DecryptWebhookOptions } from './types'
 
 export async function decryptWebhookData(options: DecryptWebhookOptions): Promise<DecryptedSubmission> {
-  const { payload, privateKey } = options
+  const { payload, passphrase } = options
 
-  const cryptoKey = await importPrivateKey(privateKey)
+  let privateKeyBytes: Uint8Array
+
+  if (passphrase.includes(' ')) {
+    privateKeyBytes = importPrivateKeyFromMnemonic(passphrase)
+  } else {
+    privateKeyBytes = importPrivateKeyFromBase64(passphrase)
+  }
 
   const decryptedData = await decryptSubmission(
     payload.ciphertext,
     payload.iv,
-    payload.wrapped_key,
-    payload.auth_tag,
-    cryptoKey
+    payload.salt,
+    payload.ephemeral_public_key,
+    privateKeyBytes,
+    {
+      formId: payload.form_id,
+      encryptionTimestamp: payload.encryption_timestamp,
+    }
   )
 
   const rawData: Record<string, unknown> = JSON.parse(decryptedData)

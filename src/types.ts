@@ -4,10 +4,12 @@ export interface WebhookPayload {
   form_id: string
   ciphertext: string
   iv: string
-  wrapped_key: string
+  salt: string
+  ephemeral_public_key: string
   auth_tag: string
   algorithm: string
   nonce: string
+  encryption_timestamp: number
   timestamp: string
   field_mapping: Record<string, string>
 }
@@ -26,7 +28,7 @@ export interface DecryptedSubmission {
 
 export interface DecryptWebhookOptions {
   payload: WebhookPayload
-  privateKey: string
+  passphrase: string
 }
 
 export interface VerifySignatureOptions {

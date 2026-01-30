@@ -1,7 +1,7 @@
 {
   "name": "lockform",
-  "version": "1.0.0",
-  "description": "Official SDK for processing Lockform webhook submissions with end-to-end encryption",
+  "version": "2.0.0",
+  "description": "Official SDK for processing Lockform webhook submissions with end-to-end encryption using X25519 + AES-256-GCM",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [
@@ -17,11 +17,18 @@
     "webhook",
     "e2e",
     "forms",
-    "rsa",
-    "aes"
+    "x25519",
+    "curve25519",
+    "aes-gcm",
+    "bip39"
   ],
   "author": "",
   "license": "MIT",
+  "dependencies": {
+    "@noble/curves": "^1.6.0",
+    "@noble/hashes": "^1.5.0",
+    "bip39": "^3.1.0"
+  },
   "devDependencies": {
     "@types/node": "^20.0.0",
     "typescript": "^5.0.0"
