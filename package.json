@@ -1,9 +1,17 @@
 {
   "name": "lockform",
-  "version": "3.0.1",
-  "description": "Official SDK for processing Lockform webhook submissions with end-to-end encryption using X25519 + AES-256-GCM",
+  "version": "4.0.0",
+  "description": "Official Lockform SDK: REST API client plus end-to-end encryption (X25519 + AES-256-GCM) for forms, submissions, files, and webhooks.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "sideEffects": false,
   "files": [
     "dist",
     "derive-key.js"
@@ -11,6 +19,9 @@
   "scripts": {
     "build": "tsc",
     "prepublishOnly": "npm run build",
+    "pretest": "npm run build",
+    "test": "node --test \"tests/**/*.test.mjs\"",
+    "typecheck": "tsc --noEmit",
     "derive-key": "node derive-key.js"
   },
   "bin": {

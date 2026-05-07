@@ -1,20 +1,13 @@
-import { webcrypto } from 'node:crypto'
 import { x25519 } from '@noble/curves/ed25519'
 import { hkdf } from '@noble/hashes/hkdf'
 import { sha256 } from '@noble/hashes/sha2'
 import { pbkdf2 } from '@noble/hashes/pbkdf2'
 import { sha512 } from '@noble/hashes/sha2'
 import { mnemonicToSeedSync } from 'bip39'
-
-const crypto = webcrypto
+import { base64ToBytes, bytesToBase64 } from './util/base64'
 
 export async function base64ToArrayBuffer(base64: string): Promise<Uint8Array> {
-  const binary = Buffer.from(base64, 'base64').toString('binary')
-  const bytes = new Uint8Array(binary.length)
-  for (let i = 0; i < binary.length; i++) {
-    bytes[i] = binary.charCodeAt(i)
-  }
-  return bytes
+  return base64ToBytes(base64)
 }
 
 export function arrayBufferToString(buffer: ArrayBuffer | Uint8Array): string {
@@ -31,12 +24,12 @@ export function importPrivateKeyFromMnemonic(mnemonic: string): Uint8Array {
 }
 
 export function importPrivateKeyFromBase64(base64: string): Uint8Array {
-  return Buffer.from(base64, 'base64')
+  return base64ToBytes(base64)
 }
 
 export function derivePrivateKey(mnemonic: string): string {
   const privateKeyBytes = importPrivateKeyFromMnemonic(mnemonic)
-  return Buffer.from(privateKeyBytes).toString('base64')
+  return bytesToBase64(privateKeyBytes)
 }
 
 function deriveSharedSecret(
@@ -57,26 +50,25 @@ async function decryptWithAES(
   iv: Uint8Array,
   additionalData?: Uint8Array
 ): Promise<string> {
-  const cryptoKey = await crypto.subtle.importKey(
+  const cryptoKey = await globalThis.crypto.subtle.importKey(
     'raw',
-    key,
+    key as BufferSource,
     { name: 'AES-GCM' },
     false,
     ['decrypt']
   )
 
-  const decrypted = await crypto.subtle.decrypt(
+  const decrypted = await globalThis.crypto.subtle.decrypt(
     {
       name: 'AES-GCM',
-      iv: iv,
-      ...(additionalData && { additionalData }),
+      iv: iv as BufferSource,
+      ...(additionalData && { additionalData: additionalData as BufferSource }),
     },
     cryptoKey,
-    ciphertext
+    ciphertext as BufferSource
   )
 
-  const decoder = new TextDecoder()
-  return decoder.decode(decrypted)
+  return new TextDecoder().decode(decrypted)
 }
 
 export async function decryptSubmission(
@@ -87,10 +79,10 @@ export async function decryptSubmission(
   privateKey: Uint8Array,
   metadata?: { formId?: string; encryptionTimestamp?: number }
 ): Promise<string> {
-  const ciphertextBuffer = await base64ToArrayBuffer(ciphertext)
-  const ivBuffer = await base64ToArrayBuffer(iv)
-  const saltBuffer = await base64ToArrayBuffer(salt)
-  const ephemeralPublicKeyBuffer = await base64ToArrayBuffer(ephemeralPublicKey)
+  const ciphertextBuffer = base64ToBytes(ciphertext)
+  const ivBuffer = base64ToBytes(iv)
+  const saltBuffer = base64ToBytes(salt)
+  const ephemeralPublicKeyBuffer = base64ToBytes(ephemeralPublicKey)
 
   const sharedSecret = deriveSharedSecret(privateKey, ephemeralPublicKeyBuffer)
   const aesKey = deriveAESKey(sharedSecret, saltBuffer)
@@ -107,17 +99,21 @@ export async function createHmacSignature(payload: string, secret: string): Prom
   const keyData = encoder.encode(secret)
   const messageData = encoder.encode(payload)
 
-  const cryptoKey = await crypto.subtle.importKey(
+  const cryptoKey = await globalThis.crypto.subtle.importKey(
     'raw',
-    keyData,
+    keyData as BufferSource,
     { name: 'HMAC', hash: 'SHA-256' },
     false,
     ['sign']
   )
 
-  const signature = await crypto.subtle.sign('HMAC', cryptoKey, messageData)
+  const signature = await globalThis.crypto.subtle.sign(
+    'HMAC',
+    cryptoKey,
+    messageData as BufferSource
+  )
 
   return Array.from(new Uint8Array(signature))
-    .map(b => b.toString(16).padStart(2, '0'))
+    .map((b) => b.toString(16).padStart(2, '0'))
     .join('')
 }
