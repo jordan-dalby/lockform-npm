@@ -154,12 +154,13 @@ test('public.submitWithFiles - full e2e: getForm → prepareUpload → PUT → s
   const { fetch, calls } = makeFetch(responses)
   const lf = new Lockform({ fetch })
 
+  const plaintext = new TextEncoder().encode('hello')
   const result = await lf.public.submitWithFiles('f1', 'tok', {
     data: { name: 'Jane' },
     files: [
       {
         field: 'cv',
-        file: new TextEncoder().encode('hello'),
+        file: plaintext,
         filename: 'cv.txt',
         contentType: 'text/plain',
       },
@@ -168,6 +169,8 @@ test('public.submitWithFiles - full e2e: getForm → prepareUpload → PUT → s
 
   assert.equal(result.submission_id, 'sub_1')
   assert.equal(calls.length, 4)
+  // prepareUpload reports the *plaintext* size (matches dashboard form-runtime).
+  assert.deepEqual(JSON.parse(calls[1].body), { expected_size: plaintext.byteLength })
   // Storage PUT used the signed URL and octet-stream content type.
   assert.equal(calls[2].url, 'https://storage.example/put/1')
   assert.equal(calls[2].method, 'PUT')
@@ -177,8 +180,9 @@ test('public.submitWithFiles - full e2e: getForm → prepareUpload → PUT → s
   assert.equal(submittedEnvelope.file_claims[0].upload_token, 'tok_1')
   assert.ok(typeof submittedEnvelope.ephemeral_public_key === 'string')
 
-  // Decrypting the submitted envelope with the private mnemonic should yield
-  // the original data plus a __lockform_files entry per uploaded attachment.
+  // Decrypting the envelope yields the dashboard-compatible FileSubmissionValue
+  // shape inlined under the field key (filename / mime_type / size /
+  // storage_path / file_key / file_iv).
   const decrypted = await decryptWebhookData({
     payload: {
       event_type: 'e',
@@ -193,14 +197,225 @@ test('public.submitWithFiles - full e2e: getForm → prepareUpload → PUT → s
       nonce: submittedEnvelope.nonce,
       encryption_timestamp: submittedEnvelope.timestamp,
       timestamp: 't',
-      field_mapping: { name: 'name' },
+      field_mapping: { name: 'name', cv: 'cv' },
     },
     passphrase: mnemonic,
   })
   assert.equal(decrypted.mappedData.name, 'Jane')
-  assert.equal(decrypted.rawData.__lockform_files.length, 1)
-  assert.equal(decrypted.rawData.__lockform_files[0].field, 'cv')
-  assert.ok(decrypted.rawData.__lockform_files[0].keyBase64)
+  assert.equal(decrypted.rawData.__lockform_files, undefined)
+  const cv = decrypted.rawData.cv
+  assert.equal(cv.filename, 'cv.txt')
+  assert.equal(cv.mime_type, 'text/plain')
+  assert.equal(cv.size, plaintext.byteLength)
+  assert.equal(cv.storage_path, 'forms/f1/o1')
+  assert.ok(cv.file_key)
+  assert.ok(cv.file_iv)
+})
+
+test('public.submitWithFiles - groups multiple files for the same field into an array', async () => {
+  const mnemonic = generateMnemonic15Words()
+  const { publicKey } = deriveKeyPairFromMnemonic(mnemonic)
+  const publicKeyBase64 = exportPublicKeyBase64(publicKey)
+
+  let submittedEnvelope = null
+  const { fetch } = makeFetch([
+    {
+      status: 200,
+      body: {
+        signed_url: 'https://storage.example/put/a',
+        storage_path: 'forms/f1/a',
+        upload_token: 'tok_a',
+        expires_in_seconds: 600,
+      },
+    },
+    { status: 200 },
+    {
+      status: 200,
+      body: {
+        signed_url: 'https://storage.example/put/b',
+        storage_path: 'forms/f1/b',
+        upload_token: 'tok_b',
+        expires_in_seconds: 600,
+      },
+    },
+    { status: 200 },
+    (url, init) => {
+      submittedEnvelope = JSON.parse(init.body)
+      return new Response(
+        JSON.stringify({ success: true, submission_id: 's', message: 'ok' }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } }
+      )
+    },
+  ])
+  const lf = new Lockform({ fetch })
+
+  await lf.public.submitWithFiles('f1', 'tok', {
+    data: {},
+    publicForm: {
+      form: {
+        id: 'f1',
+        organization_id: 'o',
+        title: '',
+        description: null,
+        fields: [],
+        submit_button: null,
+        max_width: null,
+        settings: {},
+        created_at: '',
+        updated_at: '',
+      },
+      public_key: publicKeyBase64,
+      algorithm: 'X25519+AES-256-GCM',
+    },
+    files: [
+      { field: 'photos', file: new Uint8Array([1, 2, 3]), filename: 'a.png', contentType: 'image/png' },
+      { field: 'photos', file: new Uint8Array([4, 5, 6]), filename: 'b.png', contentType: 'image/png' },
+    ],
+  })
+
+  assert.equal(submittedEnvelope.file_claims.length, 2)
+  const decrypted = await decryptWebhookData({
+    payload: {
+      event_type: 'e',
+      submission_id: 's',
+      form_id: 'f1',
+      ciphertext: submittedEnvelope.ciphertext,
+      iv: submittedEnvelope.iv,
+      salt: submittedEnvelope.salt,
+      ephemeral_public_key: submittedEnvelope.ephemeral_public_key,
+      auth_tag: '',
+      algorithm: submittedEnvelope.algorithm,
+      nonce: submittedEnvelope.nonce,
+      encryption_timestamp: submittedEnvelope.timestamp,
+      timestamp: 't',
+      field_mapping: { photos: 'photos' },
+    },
+    passphrase: mnemonic,
+  })
+  const photos = decrypted.rawData.photos
+  assert.ok(Array.isArray(photos))
+  assert.equal(photos.length, 2)
+  assert.equal(photos[0].filename, 'a.png')
+  assert.equal(photos[1].filename, 'b.png')
+})
+
+test('public.submitWithFiles - auto-computes unique_field_hash from form settings', async () => {
+  const mnemonic = generateMnemonic15Words()
+  const { publicKey } = deriveKeyPairFromMnemonic(mnemonic)
+  const publicKeyBase64 = exportPublicKeyBase64(publicKey)
+
+  // Same blind_index_key + same normalized value must produce the same hash
+  // regardless of input casing/whitespace - that's the whole point of the
+  // server-side replay check.
+  const blindKey = 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA='
+  const publicForm = {
+    form: {
+      id: 'f1',
+      organization_id: 'o',
+      title: '',
+      description: null,
+      fields: [],
+      submit_button: null,
+      max_width: null,
+      settings: {
+        duplicate_detection: {
+          enabled: true,
+          field_path: 'email',
+          blind_index_key: blindKey,
+        },
+      },
+      created_at: '',
+      updated_at: '',
+    },
+    public_key: publicKeyBase64,
+    algorithm: 'X25519+AES-256-GCM',
+  }
+
+  const captured = []
+  const makeResp = () => ({
+    status: 200,
+    body: { success: true, submission_id: 's', message: 'ok' },
+  })
+  const { fetch } = makeFetch([
+    (_url, init) => {
+      captured.push(JSON.parse(init.body))
+      return new Response(JSON.stringify(makeResp().body), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    },
+    (_url, init) => {
+      captured.push(JSON.parse(init.body))
+      return new Response(JSON.stringify(makeResp().body), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    },
+  ])
+  const lf = new Lockform({ fetch })
+
+  await lf.public.submitWithFiles('f1', 'tok', {
+    data: { email: 'Jane@Example.com  ' },
+    publicForm,
+  })
+  await lf.public.submitWithFiles('f1', 'tok', {
+    data: { email: 'jane@example.com' },
+    publicForm,
+  })
+
+  assert.ok(captured[0].unique_field_hash, 'hash should be auto-computed')
+  assert.equal(
+    captured[0].unique_field_hash,
+    captured[1].unique_field_hash,
+    'normalization (trim + lowercase) must produce identical hashes'
+  )
+})
+
+test('public.submitWithFiles - explicit uniqueFieldHash: null suppresses computation', async () => {
+  const mnemonic = generateMnemonic15Words()
+  const { publicKey } = deriveKeyPairFromMnemonic(mnemonic)
+  const publicKeyBase64 = exportPublicKeyBase64(publicKey)
+
+  let body = null
+  const { fetch } = makeFetch([
+    (_url, init) => {
+      body = JSON.parse(init.body)
+      return new Response(
+        JSON.stringify({ success: true, submission_id: 's', message: 'ok' }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } }
+      )
+    },
+  ])
+  const lf = new Lockform({ fetch })
+
+  await lf.public.submitWithFiles('f1', 'tok', {
+    data: { email: 'jane@example.com' },
+    uniqueFieldHash: null,
+    publicForm: {
+      form: {
+        id: 'f1',
+        organization_id: 'o',
+        title: '',
+        description: null,
+        fields: [],
+        submit_button: null,
+        max_width: null,
+        settings: {
+          duplicate_detection: {
+            enabled: true,
+            field_path: 'email',
+            blind_index_key: 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=',
+          },
+        },
+        created_at: '',
+        updated_at: '',
+      },
+      public_key: publicKeyBase64,
+      algorithm: 'X25519+AES-256-GCM',
+    },
+  })
+
+  assert.equal(body.unique_field_hash, undefined)
 })
 
 test('public.submitWithFiles - accepts pre-fetched publicForm (skips getForm)', async () => {
@@ -277,7 +492,7 @@ test('public.submitWithFiles - bubbles up storage upload failures as LockformNet
     () =>
       lf.public.submitWithFiles('f1', 'tok', {
         data: {},
-        files: [{ field: 'x', file: new Uint8Array([1]), contentType: 'application/octet-stream' }],
+        files: [{ field: 'x', file: new Uint8Array([1]), filename: 'x.bin', contentType: 'application/octet-stream' }],
       }),
     LockformNetworkError
   )

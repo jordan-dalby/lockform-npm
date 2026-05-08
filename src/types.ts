@@ -82,12 +82,21 @@ export interface PublicForm {
     fields: unknown[]
     submit_button: unknown
     max_width: unknown
-    settings: Record<string, unknown>
+    settings: PublicFormSettings
     created_at: string
     updated_at: string
   }
   public_key: string
   algorithm: string
+}
+
+export interface PublicFormSettings {
+  duplicate_detection?: {
+    enabled: boolean
+    field_path: string
+    blind_index_key: string
+    error_message?: string
+  }
 }
 
 export interface FormCreateInput {
@@ -292,12 +301,28 @@ export interface EncryptSubmissionMetadata {
 
 // ---- submitWithFiles helper -------------------------------------------------
 
+/**
+ * Per-file value embedded into the encrypted submission plaintext. Wire-format
+ * matches `Lockform/src/types/form.ts#FileSubmissionValue` so dashboard
+ * download flows (`fetchAndDecryptFile`) can consume SDK-uploaded files.
+ */
+export interface FileSubmissionValue {
+  filename: string
+  mime_type: string
+  size: number
+  storage_path: string
+  file_key: string
+  file_iv: string
+}
+
 export interface SubmitFileInput {
   /** The plaintext file bytes. */
   file: Blob | Uint8Array
-  /** The form field id (or CSV name) this file is attached to. */
+  /** The form field id this file is attached to. Multiple files for the same
+   * field are grouped into an array on the encrypted submission, matching the
+   * dashboard form-runtime. */
   field: string
-  filename?: string
+  filename: string
   contentType?: string
 }
 
@@ -310,9 +335,11 @@ export interface SubmitWithFilesInput {
    */
   publicForm?: PublicForm
   /**
-   * Optional value to base the `unique_field_hash` on. Caller must supply
-   * the already-hashed value (mirrors the dashboard form-runtime). Omit if
-   * the form has no duplicate-detection rule.
+   * Override the `unique_field_hash` computation. By default the helper reads
+   * `publicForm.form.settings.duplicate_detection` and computes the blind
+   * index automatically. Pass a string to use it verbatim, or `null` to
+   * suppress hashing entirely (e.g. for forms whose duplicate-detection
+   * field is intentionally absent from `data`).
    */
   uniqueFieldHash?: string | null
 }

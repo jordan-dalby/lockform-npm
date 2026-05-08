@@ -15,6 +15,7 @@ export class FormImagesResource {
   constructor(private readonly http: HttpClient) {}
 
   async upload(input: FormImageUploadInput): Promise<FormImageUploadResponse> {
+    assertApiKeyAuth(this.http.authMode, 'forms.images.upload')
     const blob =
       input.file instanceof Uint8Array
         ? new Blob([toArrayBuffer(input.file)], { type: input.contentType })
@@ -29,11 +30,21 @@ export class FormImagesResource {
   }
 
   async delete(path: string): Promise<null> {
+    assertApiKeyAuth(this.http.authMode, 'forms.images.delete')
     const encoded = path.split('/').map(encodeURIComponent).join('/')
     return this.http.request<null>({
       method: 'DELETE',
       path: `/v1/forms/images/${encoded}`,
     })
+  }
+}
+
+function assertApiKeyAuth(mode: 'apiKey' | 'jwt' | 'none', method: string): void {
+  if (mode !== 'apiKey') {
+    throw new Error(
+      `${method} requires API-key authentication. ` +
+        'The form-images endpoints do not accept JWT or anonymous callers.'
+    )
   }
 }
 

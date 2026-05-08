@@ -127,3 +127,21 @@ test('forms.images.delete - DELETE /v1/forms/images/<path> with each segment enc
   assert.equal(calls[0].method, 'DELETE')
   assert.equal(pathOf(calls[0].url), '/v1/forms/images/org_1/abc%20def.png')
 })
+
+test('forms.images.upload - JWT clients are rejected client-side (no silent 403)', async () => {
+  const { fetch } = makeFetch([])
+  const lf = new Lockform({ jwt: 'jwt_x', organizationId: 'org_1', fetch })
+  await assert.rejects(
+    () => lf.forms.images.upload({ file: new Uint8Array([1]), contentType: 'image/png' }),
+    /requires API-key authentication/
+  )
+})
+
+test('forms.images.delete - anonymous clients are rejected client-side', async () => {
+  const { fetch } = makeFetch([])
+  const lf = new Lockform({ fetch })
+  await assert.rejects(
+    () => lf.forms.images.delete('org_1/x.png'),
+    /requires API-key authentication/
+  )
+})

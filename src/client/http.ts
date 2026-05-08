@@ -43,6 +43,10 @@ export class HttpClient {
     this.extraHeaders = config.headers ?? {}
   }
 
+  get authMode(): AuthMode['type'] {
+    return this.auth.type
+  }
+
   /**
    * Raw fetch using the configured implementation. Used for one-off requests
    * that don't go through the Lockform API (e.g. PUTting to a Supabase

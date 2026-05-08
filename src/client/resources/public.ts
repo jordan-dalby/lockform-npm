@@ -1,15 +1,18 @@
 import { HttpClient } from '../http'
 import {
   EncryptedPayload,
+  FileSubmissionValue,
   PrepareUploadResponse,
   PublicForm,
   SubmissionCreateInput,
   SubmissionCreateResponse,
   SubmissionFileClaim,
+  SubmitFileInput,
   SubmitWithFilesInput,
   SubmitWithFilesResponse,
 } from '../../types'
 import { encryptFileBlob, encryptSubmission } from '../../encrypt'
+import { computeUniqueFieldHash } from '../../blind-index'
 import { LockformNetworkError } from '../errors'
 
 export class PublicResource {
@@ -81,47 +84,38 @@ export class PublicResource {
 
     const files = input.files ?? []
     const fileClaims: SubmissionFileClaim[] = []
-    const fileMeta: Array<{
-      field: string
-      filename: string | null
-      contentType: string | null
-      keyBase64: string
-      ivBase64: string
-      storage_path: string
-      upload_token: string
-    }> = []
+    const transformed: Record<string, unknown> = { ...input.data }
 
     for (const file of files) {
       const plaintextBytes = await toBytes(file.file)
-      const { ciphertext, keyBase64, ivBase64 } = await encryptFileBlob(plaintextBytes)
+      const plaintextSize = plaintextBytes.byteLength
 
       const prep = await this.prepareUpload(formId, accessToken, {
-        expected_size: ciphertext.byteLength,
+        expected_size: plaintextSize,
       })
 
+      const { ciphertext, keyBase64, ivBase64 } = await encryptFileBlob(plaintextBytes)
       await uploadCiphertext(this.http, prep.signed_url, ciphertext)
+
+      const value: FileSubmissionValue = {
+        filename: file.filename,
+        mime_type: resolveMimeType(file),
+        size: plaintextSize,
+        storage_path: prep.storage_path,
+        file_key: keyBase64,
+        file_iv: ivBase64,
+      }
+      attachFileValue(transformed, file.field, value)
 
       fileClaims.push({
         upload_token: prep.upload_token,
         storage_path: prep.storage_path,
       })
-      fileMeta.push({
-        field: file.field,
-        filename: file.filename ?? null,
-        contentType: file.contentType ?? null,
-        keyBase64,
-        ivBase64,
-        storage_path: prep.storage_path,
-        upload_token: prep.upload_token,
-      })
     }
 
-    const plaintext: Record<string, unknown> = { ...input.data }
-    if (fileMeta.length > 0) {
-      plaintext.__lockform_files = fileMeta
-    }
+    const uniqueFieldHash = await resolveUniqueFieldHash(input, publicForm, transformed)
 
-    const envelope: EncryptedPayload = await encryptSubmission(plaintext, publicKey, {
+    const envelope: EncryptedPayload = await encryptSubmission(transformed, publicKey, {
       formId,
     })
 
@@ -133,12 +127,46 @@ export class PublicResource {
       algorithm: envelope.algorithm,
       nonce: envelope.nonce,
       timestamp: envelope.timestamp,
-      unique_field_hash: input.uniqueFieldHash ?? undefined,
+      unique_field_hash: uniqueFieldHash ?? undefined,
       file_claims: fileClaims.length > 0 ? fileClaims : undefined,
     })
 
     return { submission_id: result.submission_id }
   }
+}
+
+function resolveMimeType(file: SubmitFileInput): string {
+  if (file.contentType) return file.contentType
+  if (file.file instanceof Uint8Array) return 'application/octet-stream'
+  return file.file.type || 'application/octet-stream'
+}
+
+function attachFileValue(
+  data: Record<string, unknown>,
+  field: string,
+  value: FileSubmissionValue
+): void {
+  const existing = data[field]
+  if (existing === undefined) {
+    data[field] = value
+    return
+  }
+  if (Array.isArray(existing)) {
+    data[field] = [...existing, value]
+    return
+  }
+  data[field] = [existing, value]
+}
+
+async function resolveUniqueFieldHash(
+  input: SubmitWithFilesInput,
+  publicForm: PublicForm,
+  data: Record<string, unknown>
+): Promise<string | null> {
+  if (input.uniqueFieldHash !== undefined) return input.uniqueFieldHash
+  const config = publicForm.form.settings?.duplicate_detection
+  if (!config || !config.enabled) return null
+  return computeUniqueFieldHash(data, config)
 }
 
 async function toBytes(input: Blob | Uint8Array): Promise<Uint8Array> {

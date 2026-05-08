@@ -6,6 +6,12 @@ export { derivePrivateKey } from './crypto'
 // Encryption (the inverse of decryptWebhookData) and key helpers.
 export { encryptSubmission, validateEncryptedPayload, encryptFileBlob } from './encrypt'
 export {
+  computeUniqueFieldHash,
+  generateBlindIndex,
+  normalizeFieldValue,
+} from './blind-index'
+export type { DuplicateDetectionConfig, UniqueFieldValue } from './blind-index'
+export {
   generateMnemonic15Words,
   validateMnemonic15Words,
   deriveKeyPairFromMnemonic,
@@ -39,6 +45,7 @@ export type {
   Paginated,
   Form,
   PublicForm,
+  PublicFormSettings,
   FormCreateInput,
   FormUpdateInput,
   FormCloneInput,
@@ -65,6 +72,7 @@ export type {
   PrepareDownloadResponse,
   EncryptedPayload,
   EncryptSubmissionMetadata,
+  FileSubmissionValue,
   SubmitFileInput,
   SubmitWithFilesInput,
   SubmitWithFilesResponse,
