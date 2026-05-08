@@ -21,6 +21,8 @@
     "prepublishOnly": "npm run build",
     "pretest": "npm run build",
     "test": "node --test \"tests/**/*.test.mjs\"",
+    "preintegration": "npm run build",
+    "integration": "node --test \"integration/**/*.test.mjs\"",
     "typecheck": "tsc --noEmit",
     "derive-key": "node derive-key.js"
   },
@@ -47,6 +49,7 @@
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
+    "pg": "^8.11.0",
     "typescript": "^5.0.0"
   },
   "engines": {
