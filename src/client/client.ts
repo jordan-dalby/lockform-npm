@@ -5,6 +5,7 @@ import { WebhooksResource } from './resources/webhooks'
 import { SubmissionsResource } from './resources/submissions'
 import { FilesResource } from './resources/files'
 import { PublicResource } from './resources/public'
+import { PrefillLinksResource } from './resources/prefillLinks'
 import { HealthResponse } from '../types'
 
 export interface LockformConfig {
@@ -25,6 +26,7 @@ export class Lockform {
   readonly submissions: SubmissionsResource
   readonly files: FilesResource
   readonly public: PublicResource
+  readonly prefillLinks: PrefillLinksResource
 
   private readonly http: HttpClient
 
@@ -51,6 +53,7 @@ export class Lockform {
     this.submissions = new SubmissionsResource(this.http)
     this.files = new FilesResource(this.http)
     this.public = new PublicResource(this.http)
+    this.prefillLinks = new PrefillLinksResource(this.http)
   }
 
   health(): Promise<HealthResponse> {

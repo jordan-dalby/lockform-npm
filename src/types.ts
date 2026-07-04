@@ -3,42 +3,42 @@
 // =============================================================================
 
 export interface WebhookPayload {
-  event_type: string
-  submission_id: string
-  form_id: string
-  ciphertext: string
-  iv: string
-  salt: string
-  ephemeral_public_key: string
-  auth_tag: string
-  algorithm: string
-  nonce: string
-  encryption_timestamp: number
-  timestamp: string
-  field_mapping: Record<string, string>
+  event_type: string;
+  submission_id: string;
+  form_id: string;
+  ciphertext: string;
+  iv: string;
+  salt: string;
+  ephemeral_public_key: string;
+  auth_tag: string;
+  algorithm: string;
+  nonce: string;
+  encryption_timestamp: number;
+  timestamp: string;
+  field_mapping: Record<string, string>;
 }
 
 export interface DecryptedSubmission {
-  rawData: Record<string, unknown>
-  mappedData: Record<string, unknown>
+  rawData: Record<string, unknown>;
+  mappedData: Record<string, unknown>;
   metadata: {
-    event_type: string
-    submission_id: string
-    form_id: string
-    timestamp: string
-    nonce: string
-  }
+    event_type: string;
+    submission_id: string;
+    form_id: string;
+    timestamp: string;
+    nonce: string;
+  };
 }
 
 export interface DecryptWebhookOptions {
-  payload: WebhookPayload
-  passphrase: string
+  payload: WebhookPayload;
+  passphrase: string;
 }
 
 export interface VerifySignatureOptions {
-  payload: string
-  signature: string
-  secret: string
+  payload: string;
+  signature: string;
+  secret: string;
 }
 
 // =============================================================================
@@ -46,94 +46,94 @@ export interface VerifySignatureOptions {
 // =============================================================================
 
 export interface HealthResponse {
-  status: string
-  timestamp: string
-  service: string
+  status: string;
+  timestamp: string;
+  service: string;
 }
 
 export interface Paginated<T> {
-  data: T[]
-  next_cursor: string | null
+  data: T[];
+  next_cursor: string | null;
 }
 
 // ---- Forms ------------------------------------------------------------------
 
 export interface Form {
-  id: string
-  organization_id: string
-  title: string
-  description: string | null
-  fields: unknown[]
-  submit_button: unknown
-  max_width: unknown
-  settings: Record<string, unknown>
-  is_submissions_disabled: boolean
-  created_at: string
-  updated_at: string
-  [key: string]: unknown
+  id: string;
+  organization_id: string;
+  title: string;
+  description: string | null;
+  fields: unknown[];
+  submit_button: unknown;
+  max_width: unknown;
+  settings: Record<string, unknown>;
+  is_submissions_disabled: boolean;
+  created_at: string;
+  updated_at: string;
+  [key: string]: unknown;
 }
 
 export interface PublicForm {
   form: {
-    id: string
-    organization_id: string
-    title: string
-    description: string | null
-    fields: unknown[]
-    submit_button: unknown
-    max_width: unknown
-    settings: PublicFormSettings
-    created_at: string
-    updated_at: string
-  }
-  public_key: string
-  algorithm: string
+    id: string;
+    organization_id: string;
+    title: string;
+    description: string | null;
+    fields: unknown[];
+    submit_button: unknown;
+    max_width: unknown;
+    settings: PublicFormSettings;
+    created_at: string;
+    updated_at: string;
+  };
+  public_key: string;
+  algorithm: string;
 }
 
 export interface PublicFormSettings {
   duplicate_detection?: {
-    enabled: boolean
-    field_path: string
-    blind_index_key: string
-    error_message?: string
-  }
+    enabled: boolean;
+    field_path: string;
+    blind_index_key: string;
+    error_message?: string;
+  };
 }
 
 export interface FormCreateInput {
-  title: string
-  description?: string | null
-  fields?: unknown[]
-  submit_button?: unknown
-  max_width?: unknown
-  settings?: Record<string, unknown>
-  is_submissions_disabled?: boolean
+  title: string;
+  description?: string | null;
+  fields?: unknown[];
+  submit_button?: unknown;
+  max_width?: unknown;
+  settings?: Record<string, unknown>;
+  is_submissions_disabled?: boolean;
 }
 
 export interface FormUpdateInput {
-  title?: string
-  description?: string | null
-  fields?: unknown[]
-  submit_button?: unknown
-  max_width?: unknown
-  settings?: Record<string, unknown>
-  is_submissions_disabled?: boolean
+  title?: string;
+  description?: string | null;
+  fields?: unknown[];
+  submit_button?: unknown;
+  max_width?: unknown;
+  settings?: Record<string, unknown>;
+  is_submissions_disabled?: boolean;
 }
 
 export interface FormCloneInput {
-  title?: string
-  description?: string | null
+  title?: string;
+  description?: string | null;
 }
 
 export interface FormCloneResponse {
-  success: boolean
-  form: Form
-  form_url: string | null
-  message: string
+  success: boolean;
+  form: Form;
+  form_url: string | null;
+  message: string;
 }
 
 export interface FormListOptions {
-  limit?: number
-  cursor?: string
+  limit?: number;
+  cursor?: string;
 }
 
 // ---- Form images ------------------------------------------------------------
@@ -143,160 +143,226 @@ export interface FormImageUploadInput {
    * The image bytes. Accepts Blob/File (browser, Deno, Node 18+) or Uint8Array
    * (which the client wraps in a Blob internally).
    */
-  file: Blob | Uint8Array
-  contentType: string
-  filename?: string
+  file: Blob | Uint8Array;
+  contentType: string;
+  filename?: string;
 }
 
 export interface FormImageUploadResponse {
-  url: string
-  path: string
-  reused: boolean
+  url: string;
+  path: string;
+  reused: boolean;
 }
 
 // ---- Access tokens ----------------------------------------------------------
 
 export interface AccessToken {
-  id: string
-  form_id: string
-  label: string | null
-  is_active: boolean
-  expires_at: string | null
-  created_at: string
+  id: string;
+  form_id: string;
+  label: string | null;
+  is_active: boolean;
+  expires_at: string | null;
+  created_at: string;
   /** Only present in the response of `create()`. */
-  token?: string
+  token?: string;
 }
 
 export interface AccessTokenCreateInput {
-  label?: string | null
-  expires_at?: string | null
+  label?: string | null;
+  expires_at?: string | null;
 }
 
 export interface AccessTokenUpdateInput {
-  label?: string | null
-  is_active?: boolean
-  expires_at?: string | null
+  label?: string | null;
+  is_active?: boolean;
+  expires_at?: string | null;
+}
+
+// ---- Prefill links ----------------------------------------------------------
+
+export interface PrefillLink {
+  id: string;
+  form_id: string;
+  label: string | null;
+  is_active: boolean;
+  single_use: boolean;
+  consumed_at: string | null;
+  expires_at: string | null;
+  created_at: string;
+  /** Only present in the response of `create()` / `issue()`. */
+  token?: string;
+}
+
+/**
+ * Raw create body: the double-envelope ciphertext plus metadata. Most callers
+ * should prefer `issue()`, which builds these envelopes from plaintext.
+ */
+export interface PrefillLinkCreateInput {
+  recipient_ciphertext: string;
+  recipient_iv: string;
+  ciphertext: string;
+  iv: string;
+  salt: string;
+  ephemeral_public_key: string;
+  algorithm: string;
+  encryption_timestamp: number;
+  label?: string | null;
+  single_use?: boolean;
+  expires_at?: string | null;
+}
+
+export interface PrefillLinkUpdateInput {
+  label?: string | null;
+  is_active?: boolean;
+  expires_at?: string | null;
+}
+
+/**
+ * High-level input for `issue()`. Encrypts `{ values, lockedFields }` into both
+ * envelopes and creates the link. Provide either `publicKey` (the form's
+ * X25519 public key) or `accessToken` (used to fetch it via the public form
+ * endpoint). Supply `formUrl` + `accessToken` to get a ready-to-send `url`.
+ */
+export interface PrefillLinkIssueInput {
+  values: Record<string, unknown>;
+  lockedFields?: import("./prefill").LockedField[];
+  publicKey?: string;
+  accessToken?: string;
+  label?: string | null;
+  singleUse?: boolean;
+  expiresAt?: string | null;
+  formUrl?: string;
+}
+
+export interface PrefillLinkIssueResult {
+  prefill_link: PrefillLink;
+  /** The secret `p` token. Persist or embed it now - it is never returned again. */
+  prefill_token: string;
+  /** The per-link key K (base64url) for the `#k=` fragment. Never sent to the server. */
+  key: string;
+  /** Ready-to-send recipient URL, when `formUrl` + `accessToken` were provided. */
+  url: string | null;
 }
 
 // ---- Webhooks ---------------------------------------------------------------
 
 export interface Webhook {
-  id: string
-  form_id: string
-  url: string
-  enabled: boolean
-  secret: string | null
-  created_at: string
-  updated_at: string
+  id: string;
+  form_id: string;
+  url: string;
+  enabled: boolean;
+  secret: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface WebhookPutInput {
-  url: string
-  enabled?: boolean
-  secret?: string | null
+  url: string;
+  enabled?: boolean;
+  secret?: string | null;
 }
 
 export interface WebhookTestResponse {
-  delivered: boolean
-  url: string
-  status: number | null
-  error?: string
+  delivered: boolean;
+  url: string;
+  status: number | null;
+  error?: string;
 }
 
 // ---- Submissions ------------------------------------------------------------
 
 export interface Submission {
-  id: string
-  form_id: string
-  ciphertext: string
-  iv: string
-  salt: string
-  ephemeral_public_key: string
-  auth_tag: string
-  algorithm: string
-  nonce: string
-  encryption_timestamp: number
-  unique_field_hash: string | null
-  submitter_ip: string | null
-  user_agent: string | null
-  submitted_at: string
-  [key: string]: unknown
+  id: string;
+  form_id: string;
+  ciphertext: string;
+  iv: string;
+  salt: string;
+  ephemeral_public_key: string;
+  auth_tag: string;
+  algorithm: string;
+  nonce: string;
+  encryption_timestamp: number;
+  unique_field_hash: string | null;
+  submitter_ip: string | null;
+  user_agent: string | null;
+  submitted_at: string;
+  [key: string]: unknown;
 }
 
 export interface SubmissionListOptions {
-  limit?: number
-  cursor?: string
-  from?: string
-  to?: string
+  limit?: number;
+  cursor?: string;
+  from?: string;
+  to?: string;
 }
 
 export interface SubmissionEnvelope {
-  ciphertext: string
-  iv: string
-  salt: string
-  ephemeral_public_key: string
-  algorithm: string
-  nonce: string
-  timestamp: number
-  unique_field_hash?: string | null
+  ciphertext: string;
+  iv: string;
+  salt: string;
+  ephemeral_public_key: string;
+  algorithm: string;
+  nonce: string;
+  timestamp: number;
+  unique_field_hash?: string | null;
 }
 
 export interface SubmissionFileClaim {
-  upload_token: string
-  storage_path: string
+  upload_token: string;
+  storage_path: string;
 }
 
 export interface SubmissionCreateInput extends SubmissionEnvelope {
-  file_claims?: SubmissionFileClaim[]
+  file_claims?: SubmissionFileClaim[];
 }
 
 export interface SubmissionCreateResponse {
-  success: boolean
-  submission_id: string
-  message: string
+  success: boolean;
+  submission_id: string;
+  message: string;
 }
 
 export interface SubmissionCountResponse {
-  count: number
+  count: number;
 }
 
 export interface SubmissionBulkDeleteResponse {
-  deleted: number
+  deleted: number;
 }
 
 // ---- Files ------------------------------------------------------------------
 
 export interface PrepareUploadInput {
-  expected_size: number
+  expected_size: number;
 }
 
 export interface PrepareUploadResponse {
-  signed_url: string
-  storage_path: string
-  upload_token: string
-  expires_in_seconds: number
+  signed_url: string;
+  storage_path: string;
+  upload_token: string;
+  expires_in_seconds: number;
 }
 
 export interface PrepareDownloadResponse {
-  signed_url: string
-  expires_in_seconds: number
+  signed_url: string;
+  expires_in_seconds: number;
 }
 
 // ---- Encryption -------------------------------------------------------------
 
 export interface EncryptedPayload {
-  ciphertext: string
-  iv: string
-  salt: string
-  ephemeralPublicKey: string
-  algorithm: 'X25519+AES-256-GCM'
-  nonce: string
-  timestamp: number
+  ciphertext: string;
+  iv: string;
+  salt: string;
+  ephemeralPublicKey: string;
+  algorithm: "X25519+AES-256-GCM";
+  nonce: string;
+  timestamp: number;
 }
 
 export interface EncryptSubmissionMetadata {
-  formId?: string
-  timestamp?: number
+  formId?: string;
+  timestamp?: number;
 }
 
 // ---- submitWithFiles helper -------------------------------------------------
@@ -307,33 +373,33 @@ export interface EncryptSubmissionMetadata {
  * download flows (`fetchAndDecryptFile`) can consume SDK-uploaded files.
  */
 export interface FileSubmissionValue {
-  filename: string
-  mime_type: string
-  size: number
-  storage_path: string
-  file_key: string
-  file_iv: string
+  filename: string;
+  mime_type: string;
+  size: number;
+  storage_path: string;
+  file_key: string;
+  file_iv: string;
 }
 
 export interface SubmitFileInput {
   /** The plaintext file bytes. */
-  file: Blob | Uint8Array
+  file: Blob | Uint8Array;
   /** The form field id this file is attached to. Multiple files for the same
    * field are grouped into an array on the encrypted submission, matching the
    * dashboard form-runtime. */
-  field: string
-  filename: string
-  contentType?: string
+  field: string;
+  filename: string;
+  contentType?: string;
 }
 
 export interface SubmitWithFilesInput {
-  data: Record<string, unknown>
-  files?: SubmitFileInput[]
+  data: Record<string, unknown>;
+  files?: SubmitFileInput[];
   /**
    * Optional pre-fetched public form definition. When omitted the helper
    * fetches it via `public.getForm`.
    */
-  publicForm?: PublicForm
+  publicForm?: PublicForm;
   /**
    * Override the `unique_field_hash` computation. By default the helper reads
    * `publicForm.form.settings.duplicate_detection` and computes the blind
@@ -341,9 +407,9 @@ export interface SubmitWithFilesInput {
    * suppress hashing entirely (e.g. for forms whose duplicate-detection
    * field is intentionally absent from `data`).
    */
-  uniqueFieldHash?: string | null
+  uniqueFieldHash?: string | null;
 }
 
 export interface SubmitWithFilesResponse {
-  submission_id: string
+  submission_id: string;
 }

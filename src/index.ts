@@ -5,6 +5,15 @@ export { derivePrivateKey } from './crypto'
 
 // Encryption (the inverse of decryptWebhookData) and key helpers.
 export { encryptSubmission, validateEncryptedPayload, encryptFileBlob } from './encrypt'
+
+// Prefill-link recipient box + URL helpers (issuer side).
+export {
+  generatePrefillKey,
+  encryptRecipientBox,
+  decryptRecipientBox,
+  buildPrefillUrl,
+} from './prefill'
+export type { LockedField, LockedFieldDisplay, PrefillPayload, RecipientBox } from './prefill'
 export {
   computeUniqueFieldHash,
   generateBlindIndex,
@@ -56,6 +65,11 @@ export type {
   AccessToken,
   AccessTokenCreateInput,
   AccessTokenUpdateInput,
+  PrefillLink,
+  PrefillLinkCreateInput,
+  PrefillLinkUpdateInput,
+  PrefillLinkIssueInput,
+  PrefillLinkIssueResult,
   Webhook,
   WebhookPutInput,
   WebhookTestResponse,
