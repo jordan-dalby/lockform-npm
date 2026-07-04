@@ -1,6 +1,6 @@
 {
   "name": "lockform",
-  "version": "4.0.0",
+  "version": "4.1.0",
   "description": "Official Lockform SDK: REST API client plus end-to-end encryption (X25519 + AES-256-GCM) for forms, submissions, files, and webhooks.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
